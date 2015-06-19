@@ -113,8 +113,8 @@ def emscript(infile, settings, outfile, libraries=[], compiler_engine=None,
       raise e
     mem_init = backend_output[end_funcs+len(end_funcs_marker):metadata_split]
     #if DEBUG: print >> sys.stderr, "FUNCS", funcs
-    #if DEBUG: print >> sys.stderr, "META", metadata
-    #if DEBUG: print >> sys.stderr, "meminit", mem_init
+    if DEBUG: print >> sys.stderr, "META", metadata
+    if DEBUG: print >> sys.stderr, "meminit", mem_init
 
     # if emulating pointer casts, force all tables to the size of the largest
     if settings['EMULATE_FUNCTION_POINTER_CASTS']:
@@ -179,6 +179,8 @@ def emscript(infile, settings, outfile, libraries=[], compiler_engine=None,
     if metadata['cantValidate'] and settings['ASM_JS'] != 2:
       logging.warning('disabling asm.js validation due to use of non-supported features: ' + metadata['cantValidate'])
       settings['ASM_JS'] = 2
+
+    settings['MAX_GLOBAL_ALIGN'] = metadata['maxGlobalAlign']
 
     # Save settings to a file to work around v8 issue 1579
     settings_file = temp_files.get('.txt').name
@@ -528,7 +530,7 @@ function _emscripten_asm_const_%d(%s) {
     if settings['RELOCATABLE']:
       basic_vars += ['gb', 'fb']
       if not settings['SIDE_MODULE']:
-        asm_setup += 'var gb = Runtime.GLOBAL_BASE, fb = 0;\n'
+        asm_setup += 'var gb = Runtime.alignMemory(Runtime.GLOBAL_BASE, %d || 1), fb = 0;\n' % settings['MAX_GLOBAL_ALIGN']
 
     asm_runtime_funcs = ['stackAlloc', 'stackSave', 'stackRestore', 'establishStackSpace', 'setThrew']
     if not settings['RELOCATABLE']:
